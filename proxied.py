@@ -99,36 +99,18 @@ def handlefile(filename, output_name):
     # Clear output file at the start
     open(output_path, "w").close()
 
-    result_queue = Queue()
-    stop_signal = object()
-
-    def writer():
-        with open(output_path, "a") as f:
-            while True:
-                item = result_queue.get()
-                if item is stop_signal:
-                    break
-                f.write(item + "\n")
-                result_queue.task_done()
-
-    writer_thread = threading.Thread(target=writer)
-    writer_thread.start()
-
     threads = []
 
     for proxy in proxies:
         while threading.active_count() > MAX_THREADS:
             time.sleep(0.01)
 
-        t = threading.Thread(target=check, args=(proxy, result_queue))
+        t = threading.Thread(target=check, args=(proxy, output_path))
         t.start()
         threads.append(t)
 
     for t in threads:
         t.join()
-
-    result_queue.put(stop_signal)
-    writer_thread.join()
 
     log("info", f"Finished checking {filename}")
 
